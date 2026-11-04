@@ -132,3 +132,9 @@ def create_resilient_gateway(
             )
 
     return app
+
+
+if __name__ == "__main__":
+    import uvicorn
+    app = create_resilient_gateway()
+    uvicorn.run(app, host="0.0.0.0", port=8004)

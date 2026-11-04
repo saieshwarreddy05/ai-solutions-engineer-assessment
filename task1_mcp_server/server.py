@@ -434,11 +434,38 @@ class DirectMCPProtocolHandler:
 
 
 def run_stdio_server():
-    """Main execution loop for stdio transport with strict stdout/stderr isolation."""
+    """
+    Main execution loop for stdio transport with strict stdout/stderr isolation.
+    Reads line-delimited JSON-RPC from sys.stdin, dispatches to tools,
+    and writes responses strictly to sys.stdout while flushing immediately.
+    Logs are directed exclusively to sys.stderr.
+    """
+    import asyncio
     server = create_customer_mcp_server()
-    logger.info("Starting Customer Operations MCP Server over STDIO...")
-    # Run the official MCP stdio runner
-    server.run(transport="stdio")
+
+    if "--official-sdk-transport" in sys.argv:
+        logger.info("Starting Customer Operations MCP Server using official SDK transport...")
+        server.run(transport="stdio")
+        return
+
+    logger.info("Starting Customer Operations MCP Server with strict JSON-RPC protocol handler...")
+    handler = DirectMCPProtocolHandler(server)
+
+    async def _stdio_loop():
+        loop = asyncio.get_running_loop()
+        while True:
+            line = await loop.run_in_executor(None, sys.stdin.readline)
+            if not line:
+                break
+            resp = await handler.handle_message(line)
+            if resp:
+                sys.stdout.write(resp + "\n")
+                sys.stdout.flush()
+
+    try:
+        asyncio.run(_stdio_loop())
+    except KeyboardInterrupt:
+        logger.info("MCP Server stopped by user.")
 
 
 if __name__ == "__main__":

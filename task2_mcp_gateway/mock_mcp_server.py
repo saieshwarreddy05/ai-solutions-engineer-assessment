@@ -183,3 +183,8 @@ async def handle_mcp_jsonrpc(request: Request):
 def reset_mock_state():
     """Helper to reset call telemetry between tests."""
     call_history.clear()
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
